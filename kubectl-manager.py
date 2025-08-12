@@ -16,10 +16,12 @@ import subprocess
 import shutil
 import stat
 import argparse
+import ssl
+import hashlib
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import tempfile
-import hashlib
 from datetime import datetime, timedelta
 
 class KubectlManager:
@@ -40,6 +42,157 @@ class KubectlManager:
         """Create necessary directories if they don't exist"""
         for directory in [self.bin_dir, self.configs_dir, self.meta_dir, self.cache_dir]:
             directory.mkdir(exist_ok=True)
+    
+    def _version_sort_key(self, version: str) -> tuple:
+        """Create a sort key for version strings that handles pre-release versions"""
+        try:
+            # Split version into parts (e.g., "1.30.0-beta" -> ["1", "30", "0-beta"])
+            parts = version.split(".")
+            key_parts = []
+            
+            for part in parts:
+                # Handle pre-release suffixes (e.g., "0-beta", "1-rc1")
+                if "-" in part:
+                    base_version, pre_release = part.split("-", 1)
+                    try:
+                        key_parts.append((int(base_version), pre_release))
+                    except ValueError:
+                        # If base version is not a number, treat whole part as string
+                        key_parts.append((0, part))
+                else:
+                    try:
+                        key_parts.append((int(part), ""))
+                    except ValueError:
+                        # If not a number, treat as string with low priority
+                        key_parts.append((0, part))
+            
+            return tuple(key_parts)
+        except Exception:
+            # Fallback to string comparison for malformed versions
+            return (0, version)
+    
+    def _validate_cluster_name(self, name: str) -> bool:
+        """Validate cluster name for security"""
+        if not name or len(name) > 100:
+            return False
+        # Allow alphanumeric, hyphens, underscores, dots
+        import re
+        return bool(re.match(r'^[a-zA-Z0-9._-]+$', name))
+    
+    def _validate_version(self, version: str) -> bool:
+        """Validate version string for security"""
+        if not version or len(version) > 50:
+            return False
+        # Allow version format: x.y.z with optional -suffix
+        import re
+        return bool(re.match(r'^v?[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$', version))
+    
+    def _validate_kubectl_args(self, args: List[str]) -> List[str]:
+        """Validate and sanitize kubectl arguments"""
+        if not args:
+            return []
+        
+        # Define allowed kubectl subcommands (defensive approach)
+        allowed_commands = {
+            'get', 'describe', 'logs', 'exec', 'port-forward', 'proxy',
+            'cp', 'auth', 'diff', 'apply', 'create', 'replace', 'patch',
+            'delete', 'rollout', 'scale', 'autoscale', 'certificate',
+            'cluster-info', 'top', 'cordon', 'uncordon', 'drain', 'taint',
+            'label', 'annotate', 'config', 'plugin', 'version', 'api-versions',
+            'api-resources', 'explain', 'wait'
+        }
+        
+        validated_args = []
+        for i, arg in enumerate(args):
+            # Limit argument length
+            if len(arg) > 1000:
+                raise ValueError(f"Argument too long: {arg[:50]}...")
+            
+            # First argument should be a valid kubectl command
+            if i == 0 and arg not in allowed_commands:
+                raise ValueError(f"Disallowed kubectl command: {arg}")
+            
+            # Block dangerous patterns
+            dangerous_patterns = [';', '&&', '||', '|', '`', '$', '>', '<', '&']
+            if any(pattern in arg for pattern in dangerous_patterns):
+                raise ValueError(f"Dangerous character in argument: {arg}")
+            
+            # Block file system manipulation
+            if any(dangerous in arg.lower() for dangerous in ['../../../', '..\\..\\', '/etc/', '/proc/', '/sys/', 'rm -rf', 'sudo']):
+                raise ValueError(f"Potentially dangerous argument: {arg}")
+            
+            validated_args.append(arg)
+        
+        return validated_args
+    
+    def _create_secure_context(self) -> ssl.SSLContext:
+        """Create a secure SSL context for downloads with enhanced security"""
+        context = ssl.create_default_context()
+        context.check_hostname = True
+        context.verify_mode = ssl.CERT_REQUIRED
+        
+        # Enhanced security settings
+        context.minimum_version = ssl.TLSVersion.TLSv1_2  # Require TLS 1.2+
+        context.set_ciphers('ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS')
+        context.options |= ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3 | ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
+        context.options |= ssl.OP_SINGLE_DH_USE | ssl.OP_SINGLE_ECDH_USE
+        
+        return context
+    
+    def _verify_download_integrity(self, file_path: Path, expected_size: int = None) -> bool:
+        """Basic integrity verification for downloaded files"""
+        if not file_path.exists():
+            return False
+            
+        # Check file size (basic sanity check)
+        file_size = file_path.stat().st_size
+        if file_size < 1024 * 1024:  # kubectl should be at least 1MB
+            print(f"❌ Downloaded file too small: {file_size} bytes")
+            return False
+            
+        if file_size > 200 * 1024 * 1024:  # kubectl should not exceed 200MB
+            print(f"❌ Downloaded file too large: {file_size} bytes")
+            return False
+        
+        # Basic file type verification (check for ELF/PE/Mach-O magic bytes)
+        try:
+            with open(file_path, 'rb') as f:
+                magic = f.read(4)
+                # ELF (Linux), PE (Windows), Mach-O (macOS)
+                valid_magic = [b'\x7fELF', b'MZ\x90\x00', b'\xfe\xed\xfa\xce', b'\xfe\xed\xfa\xcf']
+                if not any(magic.startswith(m[:len(magic)]) for m in valid_magic):
+                    print(f"❌ Downloaded file does not appear to be a valid binary")
+                    return False
+        except Exception as e:
+            print(f"❌ Error verifying download: {e}")
+            return False
+            
+        return True
+    
+    def _secure_download(self, url: str, output_path: Path, progress_hook=None) -> bool:
+        """Securely download a file with integrity checks"""
+        try:
+            # Create secure request with SSL verification
+            context = self._create_secure_context()
+            opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=context))
+            urllib.request.install_opener(opener)
+            
+            # Download file
+            urllib.request.urlretrieve(url, output_path, progress_hook)
+            
+            # Verify download integrity
+            if not self._verify_download_integrity(output_path):
+                if output_path.exists():
+                    output_path.unlink()
+                return False
+                
+            return True
+            
+        except Exception as e:
+            print(f"❌ Secure download failed: {e}")
+            if output_path.exists():
+                output_path.unlink()
+            return False
     
     def load_config(self) -> Dict:
         """Load tool configuration"""
@@ -111,7 +264,9 @@ class KubectlManager:
         
         print("🔍 Fetching available kubectl versions...")
         try:
-            with urllib.request.urlopen(self.config["settings"]["github_api_url"]) as response:
+            # SECURITY: Use secure SSL context for API calls
+            context = self._create_secure_context()
+            with urllib.request.urlopen(self.config["settings"]["github_api_url"], context=context) as response:
                 releases = json.loads(response.read().decode())
             
             versions = []
@@ -138,24 +293,35 @@ class KubectlManager:
             for file in self.bin_dir.iterdir():
                 if file.name.startswith("kubectl-") and file.is_file():
                     version = file.name.replace("kubectl-", "")
+                    # Remove .exe extension on Windows
+                    if version.endswith(".exe"):
+                        version = version[:-4]
                     versions.append(version)
-        return sorted(versions, key=lambda x: [int(i) for i in x.split(".")])
+        return sorted(versions, key=self._version_sort_key)
     
     def download_kubectl(self, version: str, show_progress: bool = True) -> bool:
         """Download kubectl binary for specified version"""
+        # SECURITY: Validate version string
+        if not self._validate_version(version):
+            print(f"❌ Invalid version format: {version}")
+            return False
+            
+        # Normalize version string - remove 'v' prefix if present, then add it for URL
+        version_clean = version.lstrip('v')
+        
         os_name, arch = self.get_platform_info()
         binary_name = "kubectl.exe" if os_name == "windows" else "kubectl"
-        url = f"{self.config['settings']['download_base_url']}/v{version}/bin/{os_name}/{arch}/{binary_name}"
+        url = f"{self.config['settings']['download_base_url']}/v{version_clean}/bin/{os_name}/{arch}/{binary_name}"
         
-        local_path = self.bin_dir / f"kubectl-{version}"
+        local_path = self.bin_dir / f"kubectl-{version_clean}"
         if os_name == "windows":
             local_path = local_path.with_suffix(".exe")
         
         if local_path.exists():
-            print(f"✅ kubectl v{version} already installed")
+            print(f"✅ kubectl v{version_clean} already installed")
             return True
         
-        print(f"📥 Downloading kubectl v{version} for {os_name}/{arch}...")
+        print(f"📥 Downloading kubectl v{version_clean} for {os_name}/{arch}...")
         
         try:
             def progress_hook(block_num, block_size, total_size):
@@ -167,18 +333,21 @@ class KubectlManager:
                     bar = "█" * filled + "░" * (bar_length - filled)
                     print(f"\r   {bar} {percent}% ({downloaded // 1024 // 1024}MB/{total_size // 1024 // 1024}MB)", end="")
             
-            urllib.request.urlretrieve(url, local_path, progress_hook)
+            # SECURITY: Use secure download with integrity verification
+            if not self._secure_download(url, local_path, progress_hook):
+                return False
+                
             if show_progress:
                 print()  # New line after progress bar
             
             # Make executable
             local_path.chmod(local_path.stat().st_mode | stat.S_IEXEC)
             
-            print(f"✅ kubectl v{version} installed successfully")
+            print(f"✅ kubectl v{version_clean} installed successfully")
             return True
         
         except Exception as e:
-            print(f"❌ Error downloading kubectl v{version}: {e}")
+            print(f"❌ Error downloading kubectl v{version_clean}: {e}")
             if local_path.exists():
                 local_path.unlink()
             return False
@@ -224,6 +393,12 @@ class KubectlManager:
     
     def add_cluster(self, name: str, kubeconfig_path: str) -> bool:
         """Add/import a cluster configuration"""
+        # SECURITY: Validate cluster name
+        if not self._validate_cluster_name(name):
+            print(f"❌ Invalid cluster name: {name}")
+            print("Cluster names must be alphanumeric with hyphens, underscores, or dots only")
+            return False
+            
         source_path = Path(kubeconfig_path).expanduser().resolve()
         
         if not source_path.exists():
@@ -446,13 +621,33 @@ echo "Now you can use './kubectl' directly without --kubeconfig option"
             print(f"❌ Kubeconfig not found: {kubeconfig_path}")
             return False
         
-        # Build command
-        cmd = [str(kubectl_binary), f"--kubeconfig={kubeconfig_path}"] + args
-        
-        # Execute kubectl
+        # SECURITY FIX: Validate and sanitize arguments
         try:
-            result = subprocess.run(cmd)
+            validated_args = self._validate_kubectl_args(args)
+        except ValueError as e:
+            print(f"❌ Invalid kubectl arguments: {e}")
+            return False
+        
+        # Build command with validated arguments
+        cmd = [str(kubectl_binary), f"--kubeconfig={str(kubeconfig_path)}"] + validated_args
+        
+        # Execute kubectl with additional security measures
+        try:
+            # Run in a more restricted environment
+            result = subprocess.run(
+                cmd,
+                timeout=300,  # 5 minute timeout
+                cwd=self.base_dir,  # Set working directory
+                env={  # Minimal environment
+                    'PATH': '/usr/local/bin:/usr/bin:/bin',
+                    'HOME': str(Path.home()),
+                    'USER': os.environ.get('USER', 'unknown')
+                }
+            )
             return result.returncode == 0
+        except subprocess.TimeoutExpired:
+            print("❌ kubectl command timed out")
+            return False
         except KeyboardInterrupt:
             print("\n⚠️  Command interrupted")
             return False

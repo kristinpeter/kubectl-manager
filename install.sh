@@ -4,8 +4,40 @@
 
 set -e  # Exit on any error
 
+# Parse command line arguments
+AUTO_MODE=false
+SKIP_COMPLETION=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --auto)
+            AUTO_MODE=true
+            shift
+            ;;
+        --skip-completion)
+            SKIP_COMPLETION=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [--auto] [--skip-completion] [--help]"
+            echo "  --auto              Run in fully automatic mode (no prompts)"
+            echo "  --skip-completion   Skip bash completion setup"
+            echo "  --help              Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
 echo "🚀 kubectl Manager - Installation Script"
 echo "========================================"
+if [[ "$AUTO_MODE" == "true" ]]; then
+    echo "Running in automatic mode..."
+fi
 echo ""
 
 # Colors for output
@@ -60,34 +92,115 @@ print_success "kubectl-manager.py is now executable"
 
 # 3. Install Python dependencies
 print_info "Installing Python dependencies..."
-if command -v pip3 &> /dev/null; then
-    pip3 install requests 2>/dev/null || {
-        print_warning "pip3 install failed, trying alternative methods..."
-        if command -v python3 &> /dev/null; then
-            python3 -m pip install requests 2>/dev/null || {
-                print_warning "Could not install requests via pip"
-                print_info "You may need to install python3-requests via your system package manager:"
-                print_info "  Ubuntu/Debian: sudo apt install python3-requests"
-                print_info "  RHEL/CentOS: sudo yum install python3-requests"
-                print_info "  Fedora: sudo dnf install python3-requests"
-                print_info "  macOS: brew install python3-requests"
-            }
-        fi
-    }
+
+# Function to check if requests module is available
+check_requests() {
+    python3 -c "import requests" &>/dev/null
+}
+
+# If requests is already installed, skip installation
+if check_requests; then
+    print_success "Python requests library already available"
 else
-    print_warning "pip3 not found, trying system package managers..."
-    if command -v apt &> /dev/null; then
-        print_info "Detected Debian/Ubuntu system"
-        print_info "Run: sudo apt install python3-requests"
-    elif command -v yum &> /dev/null; then
-        print_info "Detected RHEL/CentOS system"
-        print_info "Run: sudo yum install python3-requests"
-    elif command -v dnf &> /dev/null; then
-        print_info "Detected Fedora system"
-        print_info "Run: sudo dnf install python3-requests"
-    elif command -v brew &> /dev/null; then
-        print_info "Detected macOS with Homebrew"
-        print_info "Run: brew install python3-requests"
+    # Try pip3 first
+    if command -v pip3 &> /dev/null; then
+        print_info "Attempting to install requests via pip3..."
+        if pip3 install requests &>/dev/null; then
+            print_success "Successfully installed requests via pip3"
+        elif python3 -m pip install requests &>/dev/null; then
+            print_success "Successfully installed requests via python3 -m pip"
+        else
+            print_warning "pip install failed, trying system package managers..."
+            INSTALL_FAILED=true
+        fi
+    else
+        print_warning "pip3 not found, trying system package managers..."
+        INSTALL_FAILED=true
+    fi
+
+    # If pip failed, try system package managers
+    if [[ "$INSTALL_FAILED" == "true" ]]; then
+        if command -v apt &> /dev/null; then
+            print_info "Detected Debian/Ubuntu system, installing python3-requests..."
+            if command -v sudo &> /dev/null; then
+                if sudo apt update &>/dev/null && sudo apt install -y python3-requests &>/dev/null; then
+                    print_success "Successfully installed python3-requests via apt"
+                else
+                    print_error "Failed to install python3-requests via apt"
+                    print_info "Please run: sudo apt install python3-requests"
+                    exit 1
+                fi
+            else
+                print_info "sudo not available, attempting without sudo..."
+                if apt update &>/dev/null && apt install -y python3-requests &>/dev/null; then
+                    print_success "Successfully installed python3-requests via apt"
+                else
+                    print_error "Failed to install python3-requests via apt"
+                    print_info "Please run: apt install python3-requests (as root)"
+                    exit 1
+                fi
+            fi
+        elif command -v yum &> /dev/null; then
+            print_info "Detected RHEL/CentOS system, installing python3-requests..."
+            if command -v sudo &> /dev/null; then
+                if sudo yum install -y python3-requests &>/dev/null; then
+                    print_success "Successfully installed python3-requests via yum"
+                else
+                    print_error "Failed to install python3-requests via yum"
+                    print_info "Please run: sudo yum install python3-requests"
+                    exit 1
+                fi
+            else
+                if yum install -y python3-requests &>/dev/null; then
+                    print_success "Successfully installed python3-requests via yum"
+                else
+                    print_error "Failed to install python3-requests via yum"
+                    print_info "Please run: yum install python3-requests (as root)"
+                    exit 1
+                fi
+            fi
+        elif command -v dnf &> /dev/null; then
+            print_info "Detected Fedora system, installing python3-requests..."
+            if command -v sudo &> /dev/null; then
+                if sudo dnf install -y python3-requests &>/dev/null; then
+                    print_success "Successfully installed python3-requests via dnf"
+                else
+                    print_error "Failed to install python3-requests via dnf"
+                    print_info "Please run: sudo dnf install python3-requests"
+                    exit 1
+                fi
+            else
+                if dnf install -y python3-requests &>/dev/null; then
+                    print_success "Successfully installed python3-requests via dnf"
+                else
+                    print_error "Failed to install python3-requests via dnf"
+                    print_info "Please run: dnf install python3-requests (as root)"
+                    exit 1
+                fi
+            fi
+        elif command -v brew &> /dev/null; then
+            print_info "Detected macOS with Homebrew, installing python-requests..."
+            if brew install python-requests &>/dev/null; then
+                print_success "Successfully installed python-requests via brew"
+            else
+                print_error "Failed to install python-requests via brew"
+                print_info "Please run: brew install python-requests"
+                exit 1
+            fi
+        else
+            print_error "No supported package manager found"
+            print_info "Please install the Python requests library manually:"
+            print_info "  pip3 install requests"
+            print_info "  OR install via your system package manager"
+            exit 1
+        fi
+    fi
+
+    # Final check to ensure requests is now available
+    if ! check_requests; then
+        print_error "Python requests library installation failed"
+        print_info "Please install it manually and run this script again"
+        exit 1
     fi
 fi
 
@@ -105,18 +218,34 @@ fi
 print_info "Initial directory structure will be created on first use"
 
 # 6. Setup bash completion (optional)
-if [[ -f "setup-completion.sh" ]]; then
+if [[ -f "setup-completion.sh" ]] && [[ "$SKIP_COMPLETION" != "true" ]]; then
     print_info "Setting up bash completion..."
-    read -p "Setup bash completion and aliases? [Y/n]: " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
-        ./setup-completion.sh
-        print_success "Bash completion configured"
+    
+    if [[ "$AUTO_MODE" == "true" ]]; then
+        # In auto mode, automatically set up completion
+        if ./setup-completion.sh &>/dev/null; then
+            print_success "Bash completion configured automatically"
+        else
+            print_warning "Bash completion setup failed, but continuing..."
+        fi
     else
-        print_info "Skipped bash completion setup"
-        print_info "You can run './setup-completion.sh' later to enable it"
+        # Interactive mode - ask user
+        read -p "Setup bash completion and aliases? [Y/n]: " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+            if ./setup-completion.sh; then
+                print_success "Bash completion configured"
+            else
+                print_warning "Bash completion setup failed, but continuing..."
+            fi
+        else
+            print_info "Skipped bash completion setup"
+            print_info "You can run './setup-completion.sh' later to enable it"
+        fi
     fi
-else
+elif [[ "$SKIP_COMPLETION" == "true" ]]; then
+    print_info "Skipping bash completion setup as requested"
+elif [[ ! -f "setup-completion.sh" ]]; then
     print_warning "setup-completion.sh not found, skipping completion setup"
 fi
 
@@ -154,5 +283,11 @@ echo "  USER_MANUAL.md       # Comprehensive user manual"
 echo "  QUICK_REFERENCE.md   # Command cheat sheet"
 echo "  TROUBLESHOOTING.md   # Common issues and solutions"
 echo ""
+
+if [[ "$AUTO_MODE" == "true" ]]; then
+    print_info "Automatic installation completed successfully!"
+    echo "You can now use kubectl-manager without any additional setup."
+    echo ""
+fi
 
 print_success "Happy kubectl managing! 🎯"

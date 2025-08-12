@@ -17,6 +17,7 @@ configurations with automatic version detection, compatibility checking, and zer
 - **🌍 Cross-platform support** - Works on Linux, macOS, and Windows
 - **⌨️ Bash completion** - Full tab completion support
 - **🎯 Zero-setup kubectl usage** - Direct `./kubectl` usage without manual configuration
+- **🔒 Security hardened** - Comprehensive input validation and secure downloads
 
 ## 📥 Installation
 
@@ -221,6 +222,34 @@ $ ./kubectl-manager.py clusters list
 │ 🟢 development   v1.32.1    kubectl v1.32.3   ✅ Ready     │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## 🔒 Security Features
+
+kubectl-manager implements comprehensive security measures to protect your system:
+
+### Input Validation & Sanitization
+- **Command injection prevention** - All kubectl arguments are validated and sanitized
+- **Path traversal protection** - Blocks malicious file paths and directory traversal
+- **Argument length limits** - Prevents buffer overflow attacks
+- **Command whitelist** - Only allows legitimate kubectl subcommands
+
+### Secure Downloads
+- **TLS 1.2+ enforcement** - Modern encryption standards required
+- **Certificate verification** - Full SSL/TLS certificate validation
+- **File integrity checks** - Downloaded binaries are verified for size and format
+- **Secure cipher suites** - Strong encryption algorithms only
+
+### Process Security
+- **Subprocess isolation** - kubectl runs in restricted environment
+- **Timeout protection** - Prevents hanging processes
+- **Environment sanitization** - Minimal environment variables passed
+
+### Security Testing
+All security features are continuously tested including:
+- Command injection attempts
+- Path traversal attacks  
+- Malformed input handling
+- SSL/TLS security validation
 
 ## 🛠️ Requirements
 
