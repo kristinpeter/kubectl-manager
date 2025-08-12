@@ -202,8 +202,10 @@ class KubectlManager:
         # Enhanced security settings
         context.minimum_version = ssl.TLSVersion.TLSv1_2  # Require TLS 1.2+
         context.set_ciphers('ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS')
-        context.options |= ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3 | ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
+        
+        # Set secure options (avoiding deprecated SSL constants)
         context.options |= ssl.OP_SINGLE_DH_USE | ssl.OP_SINGLE_ECDH_USE
+        # TLS 1.2+ minimum version already excludes older protocols
         
         return context
     
@@ -559,7 +561,7 @@ class KubectlManager:
         print(f"✅ Pruning complete: removed {removed_count} versions")
         return True
     
-    def download_kubectl(self, version: str, show_progress: bool = True) -> bool:
+    def download_kubectl(self, version: str, show_progress: bool = True, force: bool = False) -> bool:
         """Download kubectl binary for specified version"""
         # SECURITY: Validate version string
         if not self._validate_version(version):
