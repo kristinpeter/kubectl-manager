@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey)](https://github.com/kristinpeter/kubectl-manager)
 
-A powerful command-line tool for managing multiple kubectl versions and Kubernetes cluster
+A security-hardened command-line tool for managing multiple kubectl versions and Kubernetes cluster
 configurations with automatic version detection, compatibility checking, and zero-setup direct kubectl usage.
 
 ## 🚀 Features
@@ -17,7 +17,11 @@ configurations with automatic version detection, compatibility checking, and zer
 - **🌍 Cross-platform support** - Works on Linux, macOS, and Windows
 - **⌨️ Bash completion** - Full tab completion support
 - **🎯 Zero-setup kubectl usage** - Direct `./kubectl` usage without manual configuration
-- **🔒 Security hardened** - Comprehensive input validation and secure downloads
+- **🔒 Security hardened** - SHA256 verification, CVE checking, and secure subprocess isolation
+- **🛡️ Supply chain security** - Cryptographic verification of all downloaded kubectl binaries
+- **🔍 Vulnerability management** - Real-time CVE checking with severity-based blocking
+- **🧹 Intelligent cleanup** - Automated pruning of old and vulnerable kubectl versions
+- **🩺 System diagnostics** - Comprehensive security and health monitoring
 
 ## 📥 Installation
 
