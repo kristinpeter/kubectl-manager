@@ -1,0 +1,54 @@
+# kubectl Manager - Local files and directories (created at runtime)
+
+# Downloaded kubectl binaries
+bin/
+
+# User kubeconfig files  
+configs/
+
+# Tool metadata and cache
+.kubectl-manager/
+
+# Generated files
+kubectl
+kubectl-env.sh
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environment files
+.env
+.venv
+env/
+venv/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# User-specific test files
+test-*.yaml
+sample-*.yaml
+*-test.yaml
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
