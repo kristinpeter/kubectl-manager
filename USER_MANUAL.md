@@ -440,4 +440,5 @@ echo ".kubectl-manager/" >> .gitignore
 
 ---
 
-This user manual covers all essential kubectl-manager functionality. For additional help, run `./kubectl-manager.py --help` or check the troubleshooting section in README.md.
+This user manual covers all essential kubectl-manager functionality. For additional help,
+run `./kubectl-manager.py --help` or check the troubleshooting section in README.md.

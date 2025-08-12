@@ -3,7 +3,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey)](https://github.com/kristinpeter/kubectl-manager)
 
-A powerful command-line tool for managing multiple kubectl versions and Kubernetes cluster configurations with automatic version detection, compatibility checking, and zero-setup direct kubectl usage.
+A powerful command-line tool for managing multiple kubectl versions and Kubernetes cluster
+configurations with automatic version detection, compatibility checking, and zero-setup direct kubectl usage.
 
 ## 🚀 Features
 
@@ -223,7 +224,7 @@ $ ./kubectl-manager.py clusters list
 
 ## 🛠️ Requirements
 
-- **Python 3.6+** 
+- **Python 3.6+**
 - **Internet connection** (for downloading kubectl versions)
 - **kubectl** (for cluster version detection - can be any version)
 - **requests** library (`pip install requests`)

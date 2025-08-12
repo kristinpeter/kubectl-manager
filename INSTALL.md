@@ -58,7 +58,9 @@ New-Item -ItemType Directory -Name kubectl-manager
 Set-Location kubectl-manager
 
 # 2. Download kubectl-manager.py
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/kristinpeter/kubectl-manager/main/kubectl-manager.py" -OutFile "kubectl-manager.py"
+Invoke-WebRequest -Uri `
+  "https://raw.githubusercontent.com/kristinpeter/kubectl-manager/main/kubectl-manager.py" `
+  -OutFile "kubectl-manager.py"
 
 # 3. Install Python dependencies
 pip install requests
@@ -246,7 +248,7 @@ your-directory/
 
 ## Optional: System-Wide Installation
 
-### Linux / macOS
+### System Installation
 ```bash
 # Install to system location (requires sudo)
 sudo mkdir -p /opt/kubectl-manager
@@ -372,6 +374,6 @@ After successful installation:
 
 ---
 
-**🎉 Installation Complete! 🎉**
+## Installation Complete 🎉
 
 Your kubectl Manager is ready to help you manage multiple kubectl versions and Kubernetes clusters efficiently.

@@ -32,25 +32,30 @@ if grep -q "kubectl-manager-completion.bash" "$SHELL_RC" 2>/dev/null; then
     echo "✅ kubectl-manager completion is already configured in $SHELL_RC"
 else
     echo "📝 Adding completion to $SHELL_RC..."
-    echo "" >> "$SHELL_RC"
-    echo "# kubectl-manager bash completion" >> "$SHELL_RC"
-    echo "if [[ -f \"$COMPLETION_FILE\" ]]; then" >> "$SHELL_RC"
-    echo "    source \"$COMPLETION_FILE\"" >> "$SHELL_RC"
-    echo "fi" >> "$SHELL_RC"
+    {
+        echo ""
+        echo "# kubectl-manager bash completion"
+        echo "if [[ -f \"$COMPLETION_FILE\" ]]; then"
+        echo "    source \"$COMPLETION_FILE\""
+        echo "fi"
+    } >> "$SHELL_RC"
     echo "✅ Added kubectl-manager completion to $SHELL_RC"
 fi
 
 # Create convenience aliases
 echo "🔧 Setting up convenience aliases..."
 if ! grep -q "alias km=" "$SHELL_RC" 2>/dev/null; then
-    echo "" >> "$SHELL_RC"
-    echo "# kubectl-manager aliases" >> "$SHELL_RC"
-    echo "alias km=\"$SCRIPT_DIR/kubectl-manager.py\"" >> "$SHELL_RC"
-    echo "alias kubectl-manager=\"$SCRIPT_DIR/kubectl-manager.py\"" >> "$SHELL_RC"
+    {
+        echo ""
+        echo "# kubectl-manager aliases"
+        echo "alias km=\"$SCRIPT_DIR/kubectl-manager.py\""
+        echo "alias kubectl-manager=\"$SCRIPT_DIR/kubectl-manager.py\""
+    } >> "$SHELL_RC"
     echo "✅ Added aliases: km, kubectl-manager"
 fi
 
 # Load completion in current session
+# shellcheck source=/dev/null
 source "$COMPLETION_FILE"
 
 echo ""

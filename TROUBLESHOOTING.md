@@ -431,4 +431,5 @@ rm -rf .kubectl-manager/ configs/ bin/ kubectl
 
 ---
 
-For additional help, check the [README.md](README.md) and [USER_MANUAL.md](USER_MANUAL.md), or create an issue with the diagnostic information above.
+For additional help, check the [README.md](README.md) and [USER_MANUAL.md](USER_MANUAL.md),
+or create an issue with the diagnostic information above.

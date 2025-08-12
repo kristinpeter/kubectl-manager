@@ -66,6 +66,28 @@ Before submitting:
 4. Test help system: `./kubectl-manager.py help`
 5. Test bash completion: `source kubectl-manager-completion.bash`
 
+## 🔍 Code Quality
+
+Please ensure code quality by running linters:
+
+### Shell Scripts
+```bash
+# Install shellcheck (macOS)
+brew install shellcheck
+
+# Check shell scripts
+shellcheck *.sh *.bash
+```
+
+### Markdown Documentation
+```bash
+# Install markdownlint-cli
+npm install -g markdownlint-cli
+
+# Check markdown files
+markdownlint -c .markdownlint.json *.md
+```
+
 ## 📚 Documentation
 
 When adding features:
