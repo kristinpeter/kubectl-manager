@@ -5,7 +5,7 @@ Thank you for considering contributing to kubectl Manager! 🎉
 ## 🚀 Quick Start
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/your-username/kubectl-manager.git`
+2. Clone your fork: `git clone https://github.com/kristinpeter/kubectl-manager.git`
 3. Create a feature branch: `git checkout -b feature/amazing-feature`
 4. Make your changes
 5. Test your changes: `./kubectl-manager.py --help`
@@ -15,7 +15,7 @@ Thank you for considering contributing to kubectl Manager! 🎉
 
 ## 🐛 Bug Reports
 
-Please use the [issue tracker](https://github.com/your-username/kubectl-manager/issues) to report bugs.
+Please use the [issue tracker](https://github.com/kristinpeter/kubectl-manager/issues) to report bugs.
 
 Include:
 - **Environment**: OS, Python version, kubectl version
@@ -36,7 +36,7 @@ Feature requests are welcome! Please:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/kubectl-manager.git
+git clone https://github.com/kristinpeter/kubectl-manager.git
 cd kubectl-manager
 
 # Install dependencies

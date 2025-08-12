@@ -5,7 +5,7 @@ Complete installation instructions for kubectl Manager on different platforms.
 ## 🚀 Quick Install (Recommended)
 
 ```bash
-git clone https://github.com/your-username/kubectl-manager.git
+git clone https://github.com/kristinpeter/kubectl-manager.git
 cd kubectl-manager
 ./install.sh
 ```
@@ -39,7 +39,7 @@ The install script will:
 mkdir kubectl-manager && cd kubectl-manager
 
 # 2. Download kubectl-manager.py
-curl -O https://raw.githubusercontent.com/your-repo/kubectl-manager/main/kubectl-manager.py
+curl -O https://raw.githubusercontent.com/kristinpeter/kubectl-manager/main/kubectl-manager.py
 
 # 3. Make executable
 chmod +x kubectl-manager.py
@@ -58,7 +58,7 @@ New-Item -ItemType Directory -Name kubectl-manager
 Set-Location kubectl-manager
 
 # 2. Download kubectl-manager.py
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/your-repo/kubectl-manager/main/kubectl-manager.py" -OutFile "kubectl-manager.py"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/kristinpeter/kubectl-manager/main/kubectl-manager.py" -OutFile "kubectl-manager.py"
 
 # 3. Install Python dependencies
 pip install requests
@@ -101,7 +101,7 @@ sudo apt install python3 python3-pip
 mkdir ~/kubectl-manager && cd ~/kubectl-manager
 
 # Download script
-wget https://raw.githubusercontent.com/your-repo/kubectl-manager/main/kubectl-manager.py
+wget https://raw.githubusercontent.com/kristinpeter/kubectl-manager/main/kubectl-manager.py
 chmod +x kubectl-manager.py
 
 # Install dependencies
@@ -120,7 +120,7 @@ sudo dnf install python3 python3-pip  # Fedora
 
 # Setup
 mkdir ~/kubectl-manager && cd ~/kubectl-manager
-curl -O https://raw.githubusercontent.com/your-repo/kubectl-manager/main/kubectl-manager.py
+curl -O https://raw.githubusercontent.com/kristinpeter/kubectl-manager/main/kubectl-manager.py
 chmod +x kubectl-manager.py
 
 # Dependencies
@@ -138,7 +138,7 @@ brew install python3
 
 # Setup
 mkdir ~/kubectl-manager && cd ~/kubectl-manager
-curl -O https://raw.githubusercontent.com/your-repo/kubectl-manager/main/kubectl-manager.py
+curl -O https://raw.githubusercontent.com/kristinpeter/kubectl-manager/main/kubectl-manager.py
 chmod +x kubectl-manager.py
 
 # Dependencies
@@ -171,7 +171,7 @@ python kubectl-manager.py
 ```bash
 # Use Linux instructions within WSL
 mkdir ~/kubectl-manager && cd ~/kubectl-manager
-wget https://raw.githubusercontent.com/your-repo/kubectl-manager/main/kubectl-manager.py
+wget https://raw.githubusercontent.com/kristinpeter/kubectl-manager/main/kubectl-manager.py
 chmod +x kubectl-manager.py
 pip3 install requests
 ./kubectl-manager.py

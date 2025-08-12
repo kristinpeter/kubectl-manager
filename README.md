@@ -1,7 +1,7 @@
 # kubectl Manager
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey)](https://github.com/your-username/kubectl-manager)
+[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey)](https://github.com/kristinpeter/kubectl-manager)
 
 A powerful command-line tool for managing multiple kubectl versions and Kubernetes cluster configurations with automatic version detection, compatibility checking, and zero-setup direct kubectl usage.
 
@@ -23,7 +23,7 @@ A powerful command-line tool for managing multiple kubectl versions and Kubernet
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/kubectl-manager.git
+git clone https://github.com/kristinpeter/kubectl-manager.git
 cd kubectl-manager
 
 # Run the installer (sets up completion and creates first directories)
@@ -37,7 +37,7 @@ cd kubectl-manager
 
 ```bash
 # Clone and make executable
-git clone https://github.com/your-username/kubectl-manager.git
+git clone https://github.com/kristinpeter/kubectl-manager.git
 cd kubectl-manager
 chmod +x kubectl-manager.py
 
@@ -241,7 +241,7 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 
 ### Development Setup
 ```bash
-git clone https://github.com/your-username/kubectl-manager.git
+git clone https://github.com/kristinpeter/kubectl-manager.git
 cd kubectl-manager
 pip3 install requests
 ./kubectl-manager.py --help
@@ -253,10 +253,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## ⭐ Support
 
-- **🐛 Issues**: [Report bugs](https://github.com/your-username/kubectl-manager/issues)
-- **💡 Feature requests**: [Request features](https://github.com/your-username/kubectl-manager/issues)
-- **📖 Documentation**: Check the [docs](https://github.com/your-username/kubectl-manager#documentation) section
-- **💬 Discussions**: [GitHub Discussions](https://github.com/your-username/kubectl-manager/discussions)
+- **🐛 Issues**: [Report bugs](https://github.com/kristinpeter/kubectl-manager/issues)
+- **💡 Feature requests**: [Request features](https://github.com/kristinpeter/kubectl-manager/issues)
+- **📖 Documentation**: Check the [docs](https://github.com/kristinpeter/kubectl-manager#documentation) section
+- **💬 Discussions**: [GitHub Discussions](https://github.com/kristinpeter/kubectl-manager/discussions)
 
 ## 🎉 Why kubectl Manager?
 
@@ -286,5 +286,5 @@ kubectl --kubeconfig=~/.kube/staging-config get pods
 
 **⚡ Get started in 30 seconds:**
 ```bash
-git clone https://github.com/your-username/kubectl-manager.git && cd kubectl-manager && ./install.sh
+git clone https://github.com/kristinpeter/kubectl-manager.git && cd kubectl-manager && ./install.sh
 ```
