@@ -54,5 +54,4 @@ sample-*.yaml
 *.temp
 
 # Claude AI files
-CLAUDE.md
 .claude/
