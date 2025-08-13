@@ -95,7 +95,7 @@ class TestBasicFunctionality(unittest.TestCase):
         os_name, arch = self.manager.get_platform_info()
         self.assertIsInstance(os_name, str)
         self.assertIsInstance(arch, str)
-        self.assertIn(os_name, ['linux', 'darwin', 'windows'])
+        self.assertIn(os_name, ['linux', 'darwin'])
 
     def test_get_installed_versions(self):
         """Test getting installed kubectl versions"""

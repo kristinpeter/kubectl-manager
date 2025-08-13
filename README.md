@@ -1,7 +1,7 @@
 # kubectl Manager
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey)](https://github.com/kristinpeter/kubectl-manager)
+[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS-lightgrey)](https://github.com/kristinpeter/kubectl-manager)
 
 A security-hardened command-line tool for managing multiple kubectl versions and Kubernetes cluster
 configurations with automatic version detection, compatibility checking, and zero-setup direct kubectl usage.
@@ -13,8 +13,7 @@ configurations with automatic version detection, compatibility checking, and zer
 - **⚡ Smart compatibility matching** - Automatically pairs clusters with optimal kubectl versions
 - **📦 Auto-download functionality** - Downloads compatible kubectl when needed
 - **🔀 Easy switching** - Switch between different kubectl versions and clusters with one command
-- **🖥️ Interactive & CLI modes** - Both menu-driven and command-line interfaces
-- **🌍 Cross-platform support** - Works on Linux, macOS, and Windows
+- **🌍 Cross-platform support** - Works on Linux and macOS
 - **⌨️ Bash completion** - Full tab completion support
 - **🎯 Zero-setup kubectl usage** - Direct `./kubectl` usage without manual configuration
 - **🔒 Security hardened** - SHA256 verification, CVE checking, and secure subprocess isolation
@@ -36,7 +35,7 @@ cd kubectl-manager
 ./install.sh
 
 # Start using immediately
-./kubectl-manager.py
+./kubectl-manager.py help
 ```
 
 ### Manual Install
@@ -91,9 +90,8 @@ pip3 install requests
 
 ### Core Commands
 ```bash
-./kubectl-manager.py                       # Interactive mode (beginner-friendly)
-./kubectl-manager.py status                # Show current configuration
 ./kubectl-manager.py help                  # Comprehensive help with examples
+./kubectl-manager.py status                # Show current configuration
 ```
 
 ### Cluster Management

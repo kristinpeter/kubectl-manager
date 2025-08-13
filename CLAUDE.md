@@ -5,7 +5,7 @@ A security-hardened tool for managing multiple kubectl versions and Kubernetes c
 
 ## Build & Test Commands
 - `python3 kubectl-manager.py --help` - Test basic functionality and show help
-- `python3 kubectl-manager.py` - Run interactive mode
+- `python3 kubectl-manager.py help` - Show detailed help information
 - `python3 kubectl-manager.py diagnose` - Run comprehensive security diagnostics
 - `./install.sh` - Run installer and setup completion
 
@@ -63,7 +63,7 @@ A security-hardened tool for managing multiple kubectl versions and Kubernetes c
 - **Core functionality**: Manager initialization, directory creation, configuration loading
 - **Security validation**: Input sanitization, path traversal protection, command injection prevention
 - **Version management**: Semantic sorting, validation, CVE checking
-- **Platform compatibility**: Linux, macOS, Windows detection and binary selection
+- **Platform compatibility**: Linux, macOS detection and binary selection
 - **SSL/TLS security**: Secure context creation, certificate verification, TLS 1.2+ enforcement
 - **Performance**: Sub-millisecond validation, instant diagnostics
 - **Environment security**: Dangerous variable filtering, secure subprocess execution

@@ -298,12 +298,12 @@ class KubectlManager:
             print(f"❌ Downloaded file too large: {file_size} bytes")
             return False
         
-        # Basic file type verification (check for ELF/PE/Mach-O magic bytes)
+        # Basic file type verification (check for ELF/Mach-O magic bytes)
         try:
             with open(file_path, 'rb') as f:
                 magic = f.read(4)
-                # ELF (Linux), PE (Windows), Mach-O (macOS)
-                valid_magic = [b'\x7fELF', b'MZ\x90\x00', b'\xfe\xed\xfa\xce', b'\xfe\xed\xfa\xcf']
+                # ELF (Linux), Mach-O (macOS)
+                valid_magic = [b'\x7fELF', b'\xfe\xed\xfa\xce', b'\xfe\xed\xfa\xcf']
                 if not any(magic.startswith(m[:len(magic)]) for m in valid_magic):
                     print(f"❌ Downloaded file does not appear to be a valid binary")
                     return False
@@ -317,7 +317,7 @@ class KubectlManager:
     def _verify_sha256_checksum(self, file_path: Path, version: str, os_name: str, arch: str) -> bool:
         """Verify file against official Kubernetes SHA256 checksum"""
         try:
-            binary_name = "kubectl.exe" if os_name == "windows" else "kubectl"
+            binary_name = "kubectl"
             checksum_url = f"{self.config['settings']['download_base_url']}/v{version}/bin/{os_name}/{arch}/{binary_name}.sha256"
             
             print(f"🔍 Verifying SHA256 checksum...")
@@ -423,8 +423,7 @@ class KubectlManager:
         
         os_map = {
             'linux': 'linux',
-            'darwin': 'darwin',
-            'windows': 'windows'
+            'darwin': 'darwin'
         }
         
         arch_map = {
@@ -434,7 +433,10 @@ class KubectlManager:
             'aarch64': 'arm64'
         }
         
-        return os_map.get(system, 'linux'), arch_map.get(machine, 'amd64')
+        if system not in os_map:
+            raise ValueError(f"Unsupported operating system: {system}")
+        
+        return os_map[system], arch_map.get(machine, 'amd64')
     
     def fetch_available_versions(self, force_refresh: bool = False) -> List[str]:
         """Fetch available kubectl versions from GitHub API"""
@@ -482,9 +484,6 @@ class KubectlManager:
             for file in self.bin_dir.iterdir():
                 if file.name.startswith("kubectl-") and file.is_file():
                     version = file.name.replace("kubectl-", "")
-                    # Remove .exe extension on Windows
-                    if version.endswith(".exe"):
-                        version = version[:-4]
                     versions.append(version)
         return sorted(versions, key=self._version_sort_key)
     
@@ -545,8 +544,6 @@ class KubectlManager:
         removed_count = 0
         for version in versions_to_remove:
             binary_path = self.bin_dir / f"kubectl-{version}"
-            if platform.system().lower() == 'windows':
-                binary_path = binary_path.with_suffix('.exe')
             
             try:
                 if binary_path.exists():
@@ -589,12 +586,10 @@ class KubectlManager:
         version_clean = version.lstrip('v')
         
         os_name, arch = self.get_platform_info()
-        binary_name = "kubectl.exe" if os_name == "windows" else "kubectl"
+        binary_name = "kubectl"
         url = f"{self.config['settings']['download_base_url']}/v{version_clean}/bin/{os_name}/{arch}/{binary_name}"
         
         local_path = self.bin_dir / f"kubectl-{version_clean}"
-        if os_name == "windows":
-            local_path = local_path.with_suffix(".exe")
         
         if local_path.exists():
             print(f"✅ kubectl v{version_clean} already installed")
@@ -1255,141 +1250,10 @@ echo "Now you can use '{wrapper_name}' directly"
         
         print("└────────────────────────────────────────────────────────────┘")
     
-    def interactive_menu(self):
-        """Show interactive menu"""
-        while True:
-            print("\n┌─ kubectl Manager ─────────────────────┐")
-            
-            active_cluster = self.config.get("active_cluster")
-            active_kubectl = self.config.get("active_kubectl")
-            
-            if active_cluster and active_kubectl:
-                print(f"│ Current: kubectl v{active_kubectl} → {active_cluster}")
-            else:
-                print("│ No active configuration")
-            
-            print("│                                       │")
-            print("│ 1. Manage kubectl versions            │")
-            print("│ 2. Manage cluster configs            │")
-            print("│ 3. Switch version + config           │")
-            print("│ 4. Run kubectl command               │")
-            print("│ 5. Status & health check             │")
-            print("│ 6. Help & documentation              │")
-            print("│ 7. Exit                              │")
-            print("└───────────────────────────────────────┘")
-            
-            try:
-                choice = input("\nSelect option [1-7]: ").strip()
-                
-                if choice == "1":
-                    self.versions_menu()
-                elif choice == "2":
-                    self.configs_menu()
-                elif choice == "3":
-                    self.switch_menu()
-                elif choice == "4":
-                    self.run_menu()
-                elif choice == "5":
-                    self.show_status()
-                elif choice == "6":
-                    self.show_help()
-                elif choice == "7":
-                    print("👋 Goodbye!")
-                    break
-                else:
-                    print("Invalid choice. Please select 1-7.")
-                    
-            except KeyboardInterrupt:
-                print("\n👋 Goodbye!")
-                break
     
-    def versions_menu(self):
-        """Versions management submenu"""
-        print("\n--- kubectl Versions ---")
-        print("1. List available versions")
-        print("2. List installed versions")
-        print("3. Install version")
-        print("4. Back to main menu")
-        
-        choice = input("Select option [1-4]: ").strip()
-        
-        if choice == "1":
-            versions = self.fetch_available_versions()[:20]  # Show top 20
-            print("\n📋 Latest available versions:")
-            for i, version in enumerate(versions, 1):
-                print(f"  {i:2}. v{version}")
-                
-        elif choice == "2":
-            installed = self.get_installed_versions()
-            if installed:
-                print("\n📦 Installed versions:")
-                for version in installed:
-                    print(f"  ✅ v{version}")
-            else:
-                print("\n📦 No kubectl versions installed")
-                
-        elif choice == "3":
-            version = input("Enter version to install (e.g., 1.29.0): ").strip()
-            if version:
-                self.download_kubectl(version)
     
-    def configs_menu(self):
-        """Configs management submenu"""
-        print("\n--- Cluster Configs ---")
-        print("1. List clusters")
-        print("2. Add cluster")
-        print("3. Remove cluster")
-        print("4. Back to main menu")
-        
-        choice = input("Select option [1-4]: ").strip()
-        
-        if choice == "1":
-            self.list_clusters()
-        elif choice == "2":
-            name = input("Cluster name: ").strip()
-            path = input("Kubeconfig path: ").strip()
-            if name and path:
-                self.add_cluster(name, path)
-        elif choice == "3":
-            name = input("Cluster name to remove: ").strip()
-            if name and name in self.config["clusters"]:
-                del self.config["clusters"][name]
-                self.save_config()
-                print(f"✅ Removed cluster '{name}'")
-            else:
-                print("❌ Cluster not found")
     
-    def switch_menu(self):
-        """Switch cluster/version menu"""
-        if not self.config["clusters"]:
-            print("❌ No clusters configured")
-            return
-        
-        print("\n--- Switch Configuration ---")
-        print("Available clusters:")
-        for i, name in enumerate(self.config["clusters"].keys(), 1):
-            info = self.config["clusters"][name]
-            kubectl_ver = info.get("kubectl_version", "none")
-            print(f"  {i}. {name} (kubectl v{kubectl_ver})")
-        
-        try:
-            choice = input("Select cluster number: ").strip()
-            cluster_names = list(self.config["clusters"].keys())
-            cluster_name = cluster_names[int(choice) - 1]
-            self.use_cluster(cluster_name)
-        except (ValueError, IndexError):
-            print("❌ Invalid selection")
     
-    def run_menu(self):
-        """Run kubectl command menu"""
-        if not self.config.get("active_cluster"):
-            print("❌ No active cluster. Use option 3 to select one.")
-            return
-        
-        command = input("Enter kubectl command (without 'kubectl'): ").strip()
-        if command:
-            args = command.split()
-            self.run_kubectl(args)
     
     def show_help(self):
         """Show comprehensive help information"""
@@ -1398,7 +1262,7 @@ echo "Now you can use '{wrapper_name}' directly"
 
 USAGE:
     ./kubectl-manager.py [COMMAND] [OPTIONS]
-    ./kubectl-manager.py                    # Interactive mode (recommended for beginners)
+    ./kubectl-manager.py help               # Show detailed help information
 
 CORE COMMANDS:
     status                                  # Show current configuration and compatibility
@@ -1435,8 +1299,8 @@ EXAMPLES:
     # Install specific kubectl version
     ./kubectl-manager.py versions install 1.32.0
     
-    # Interactive mode (beginner-friendly)
-    ./kubectl-manager.py
+    # Show help
+    ./kubectl-manager.py help
 
 DIRECT kubectl USAGE:
     After switching clusters with 'use', you can run kubectl directly:
@@ -1451,7 +1315,7 @@ FEATURES:
     ✅ Multiple kubectl versions side-by-side
     ✅ Smart kubectl binary selection
     ✅ Zero-setup direct kubectl usage
-    ✅ Cross-platform support (Linux, macOS, Windows)
+    ✅ Cross-platform support (Linux, macOS)
     🔒 SHA256 verification of all downloaded binaries
     🔒 CVE vulnerability checking and blocking
     🔒 Enhanced security with path traversal protection
@@ -1489,9 +1353,10 @@ def main():
     manager = KubectlManager()
     
     if len(sys.argv) == 1:
-        # Interactive mode
+        # Show help when no arguments provided
         print("🚀 kubectl Manager - Multi-version kubectl and cluster management")
-        manager.interactive_menu()
+        print("\nUsage: ./kubectl-manager.py [COMMAND] [OPTIONS]")
+        print("\nRun './kubectl-manager.py help' for detailed usage information.")
         return
     
     parser = argparse.ArgumentParser(description="kubectl Manager - Multi-version kubectl and cluster management")
