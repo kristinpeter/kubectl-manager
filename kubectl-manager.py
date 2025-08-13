@@ -37,11 +37,32 @@ class KubectlManager:
         
         self.ensure_directories()
         self.config = self.load_config()
+        self.ensure_kubectl_available()
     
     def ensure_directories(self):
         """Create necessary directories if they don't exist"""
         for directory in [self.bin_dir, self.configs_dir, self.meta_dir, self.cache_dir]:
             directory.mkdir(exist_ok=True)
+    
+    def ensure_kubectl_available(self):
+        """Ensure at least one kubectl version is available on first run"""
+        installed = self.get_installed_versions()
+        if not installed:
+            print("🚀 First run detected - downloading latest kubectl version...")
+            try:
+                latest_versions = self.fetch_available_versions()
+                if latest_versions:
+                    latest_version = latest_versions[0]
+                    print(f"📦 Installing kubectl v{latest_version}...")
+                    if self.download_kubectl(latest_version, force=True):
+                        print(f"✅ kubectl v{latest_version} installed successfully")
+                        self.create_kubectl_wrapper(latest_version)
+                    else:
+                        print("❌ Failed to install latest kubectl")
+                else:
+                    print("❌ Failed to fetch available kubectl versions")
+            except Exception as e:
+                print(f"❌ Error during initial kubectl setup: {e}")
     
     def _version_sort_key(self, version: str) -> tuple:
         """Create a sort key for version strings that handles pre-release versions"""
@@ -477,6 +498,34 @@ class KubectlManager:
             print(f"❌ Error fetching versions: {e}")
             return []
     
+    def get_major_minor_versions(self, limit: int = 10) -> List[str]:
+        """Get unique major.minor versions, showing latest patch for each"""
+        all_versions = self.fetch_available_versions()
+        major_minor_map = {}
+        
+        for version in all_versions:
+            try:
+                parts = version.split('.')
+                if len(parts) >= 2:
+                    major_minor = f"{parts[0]}.{parts[1]}"
+                    if major_minor not in major_minor_map:
+                        major_minor_map[major_minor] = version
+                    else:
+                        # Keep the highest patch version
+                        current = major_minor_map[major_minor]
+                        if self._version_sort_key(version) > self._version_sort_key(current):
+                            major_minor_map[major_minor] = version
+            except (ValueError, IndexError):
+                continue
+        
+        # Sort by version and return formatted list
+        sorted_versions = sorted(major_minor_map.items(), 
+                               key=lambda x: self._version_sort_key(x[1]), 
+                               reverse=True)
+        
+        return [f"{major_minor}.x" 
+                for major_minor, version in sorted_versions[:limit]]
+    
     def get_installed_versions(self) -> List[str]:
         """Get list of locally installed kubectl versions"""
         versions = []
@@ -640,8 +689,14 @@ class KubectlManager:
     
     def detect_cluster_version(self, kubeconfig_path: str) -> Optional[str]:
         """Detect Kubernetes cluster version from kubeconfig"""
+        # Find available kubectl binary
+        kubectl_binary = self._find_kubectl_binary()
+        if not kubectl_binary:
+            print("⚠️  No kubectl binary available for version detection")
+            return None
+            
         try:
-            cmd = ["kubectl", "version", "--output=json", f"--kubeconfig={kubeconfig_path}"]
+            cmd = [str(kubectl_binary), "version", "--output=json", f"--kubeconfig={kubeconfig_path}"]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             
             if result.returncode == 0:
@@ -651,8 +706,29 @@ class KubectlManager:
                     return server_version[1:]  # Remove 'v' prefix
         
         except (subprocess.TimeoutExpired, subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError):
-            pass
+            print("⚠️  Could not detect cluster version - cluster may be unreachable")
         
+        return None
+    
+    def _find_kubectl_binary(self) -> Optional[Path]:
+        """Find an available kubectl binary to use"""
+        # Check if we have any installed kubectl versions
+        installed_versions = self.get_installed_versions()
+        if installed_versions:
+            # Use the latest installed version
+            latest_version = max(installed_versions, key=self._version_sort_key)
+            kubectl_path = self.bin_dir / f"kubectl-{latest_version}"
+            if kubectl_path.exists():
+                return kubectl_path
+        
+        # Check if system kubectl is available
+        try:
+            result = subprocess.run(["which", "kubectl"], capture_output=True, text=True)
+            if result.returncode == 0:
+                return Path(result.stdout.strip())
+        except Exception:
+            pass
+            
         return None
     
     def get_recommended_kubectl_version(self, cluster_version: str) -> str:
@@ -677,7 +753,7 @@ class KubectlManager:
         except ValueError:
             return cluster_version
     
-    def add_cluster(self, name: str, kubeconfig_path: str) -> bool:
+    def add_cluster(self, name: str, kubeconfig_path: str, manual_kubectl_version: Optional[str] = None) -> bool:
         """Add/import a cluster configuration"""
         # SECURITY: Validate cluster name
         if not self._validate_cluster_name(name):
@@ -704,19 +780,28 @@ class KubectlManager:
             print(f"❌ Error copying kubeconfig: {e}")
             return False
         
-        # Detect cluster version
-        print("📡 Connecting to detect cluster version...")
-        cluster_version = self.detect_cluster_version(str(target_path))
-        
-        if not cluster_version:
-            print("⚠️  Could not detect cluster version (cluster may be unreachable)")
-            cluster_version = "unknown"
+        # Handle manual kubectl version specification
+        if manual_kubectl_version:
+            print(f"🔧 Using manually specified kubectl version: v{manual_kubectl_version}")
+            recommended_kubectl = manual_kubectl_version
+            cluster_version = "manual"  # Mark as manually configured
         else:
-            print(f"✅ Cluster version detected: v{cluster_version}")
-        
-        # Get recommended kubectl version
-        recommended_kubectl = self.get_recommended_kubectl_version(cluster_version)
-        print(f"💡 Recommended kubectl version: v{recommended_kubectl}")
+            # Detect cluster version
+            print("📡 Connecting to detect cluster version...")
+            cluster_version = self.detect_cluster_version(str(target_path))
+            
+            if not cluster_version:
+                print("⚠️  Could not detect cluster version (cluster may be unreachable)")
+                cluster_version = "unknown"
+                # Use latest available kubectl as fallback
+                latest_versions = self.fetch_available_versions()
+                recommended_kubectl = latest_versions[0] if latest_versions else "1.31.0"
+                print(f"💡 Using latest kubectl version as fallback: v{recommended_kubectl}")
+            else:
+                print(f"✅ Cluster version detected: v{cluster_version}")
+                # Get recommended kubectl version
+                recommended_kubectl = self.get_recommended_kubectl_version(cluster_version)
+                print(f"💡 Recommended kubectl version: v{recommended_kubectl}")
         
         # Check if recommended version is installed
         installed_versions = self.get_installed_versions()
@@ -772,6 +857,33 @@ class KubectlManager:
             print(f"⚠️  No compatible kubectl version available")
             print(f"   Install with: ./kubectl-manager.py versions install {recommended_kubectl}")
         
+        return True
+    
+    def set_cluster_kubectl_version(self, cluster_name: str, kubectl_version: str) -> bool:
+        """Set kubectl version for existing cluster"""
+        if cluster_name not in self.config["clusters"]:
+            print(f"❌ Cluster '{cluster_name}' not found")
+            return False
+        
+        # Validate kubectl version format
+        if not self._validate_version(kubectl_version):
+            print(f"❌ Invalid kubectl version format: {kubectl_version}")
+            return False
+        
+        # Check if version is installed, download if needed
+        installed_versions = self.get_installed_versions()
+        if kubectl_version not in installed_versions:
+            print(f"📦 kubectl v{kubectl_version} not found locally, downloading...")
+            if not self.download_kubectl(kubectl_version):
+                print(f"❌ Failed to download kubectl v{kubectl_version}")
+                return False
+        
+        # Update cluster configuration
+        self.config["clusters"][cluster_name]["kubectl_version"] = kubectl_version
+        self.config["clusters"][cluster_name]["cluster_version"] = "manual"
+        self.save_config()
+        
+        print(f"✅ Set kubectl v{kubectl_version} for cluster '{cluster_name}'")
         return True
     
     def list_clusters(self):
@@ -1386,6 +1498,11 @@ def main():
     add_parser = configs_subparsers.add_parser("add", help="Add cluster configuration")
     add_parser.add_argument("name", help="Cluster name")
     add_parser.add_argument("kubeconfig", help="Path to kubeconfig file")
+    add_parser.add_argument("--kubectl-version", help="Manually specify kubectl version (overrides auto-detection)")
+    
+    set_version_parser = configs_subparsers.add_parser("set-kubectl", help="Set kubectl version for existing cluster")
+    set_version_parser.add_argument("name", help="Cluster name")
+    set_version_parser.add_argument("version", help="kubectl version to use")
     
     # Clusters subcommand (alias for configs)
     clusters_parser = subparsers.add_parser("clusters", help="Manage clusters (alias for configs)")
@@ -1414,10 +1531,10 @@ def main():
     
     if args.command == "versions":
         if args.versions_action == "list":
-            versions = manager.fetch_available_versions()[:20]
-            print("📋 Latest available kubectl versions:")
+            versions = manager.get_major_minor_versions(limit=10)
+            print("📋 Available kubectl versions (major.minor):")
             for version in versions:
-                print(f"  v{version}")
+                print(f"  {version}")
         elif args.versions_action == "installed":
             installed = manager.get_installed_versions()
             if installed:
@@ -1436,7 +1553,9 @@ def main():
         if args.configs_action == "list":
             manager.list_clusters()
         elif args.configs_action == "add":
-            manager.add_cluster(args.name, args.kubeconfig)
+            manager.add_cluster(args.name, args.kubeconfig, args.kubectl_version)
+        elif args.configs_action == "set-kubectl":
+            manager.set_cluster_kubectl_version(args.name, args.version)
     
     elif args.command == "clusters":
         if args.clusters_action == "list":

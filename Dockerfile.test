@@ -1,0 +1,67 @@
+# Docker container for comprehensive kubectl-manager testing
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    curl \
+    wget \
+    git \
+    bash \
+    sudo \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    shellcheck \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python testing dependencies
+RUN pip3 install --no-cache-dir \
+    pytest \
+    pytest-cov \
+    pytest-xdist \
+    bandit \
+    black \
+    flake8 \
+    requests \
+    mock
+
+# Create test user (non-root for security testing)
+RUN useradd -m -s /bin/bash testuser && \
+    echo "testuser ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/testuser
+
+# Set working directory
+WORKDIR /app
+
+# Copy kubectl-manager files
+COPY kubectl-manager.py /app/
+COPY test_comprehensive.py /app/
+COPY test_basic.py /app/
+COPY pytest.ini /app/
+COPY install.sh /app/
+COPY setup-completion.sh /app/
+COPY kubectl-manager-completion.bash /app/
+
+# Make scripts executable
+RUN chmod +x /app/kubectl-manager.py /app/install.sh /app/setup-completion.sh
+
+# Create test directories
+RUN mkdir -p /app/test-results /app/coverage
+
+# Change ownership to test user
+RUN chown -R testuser:testuser /app
+
+# Switch to test user
+USER testuser
+
+# Set environment variables for testing
+ENV PYTHONPATH=/app
+ENV TEST_MODE=1
+
+# Default command runs comprehensive tests
+CMD ["python3", "-m", "pytest", "test_comprehensive.py", "-v", "--cov=kubectl_manager", "--cov-report=html:/app/coverage/", "--cov-report=term", "--junit-xml=/app/test-results/junit.xml"]
