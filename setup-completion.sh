@@ -53,22 +53,29 @@ if ! grep -q "alias km=" "$SHELL_RC" 2>/dev/null; then
         echo "alias k8s=\"$SCRIPT_DIR/kubectl\""
         echo ""
         echo "# kubectl completion for k8s alias"
-        echo "if command -v kubectl > /dev/null 2>&1; then"
+        echo "if [[ -f \"$SCRIPT_DIR/kubectl\" ]]; then"
+        echo "    complete -o default -F __start_kubectl k8s"
+        echo "elif command -v kubectl > /dev/null 2>&1; then"
         echo "    complete -o default -F __start_kubectl k8s"
         echo "fi"
     } >> "$SHELL_RC"
     echo "✅ Added aliases: km, kubectl-manager, k8s"
+    echo "💡 k8s alias points to: $SCRIPT_DIR/kubectl"
 fi
 
 # Create global k8s symlink (optional, with sudo)
 echo "🌐 Setting up global k8s command..."
 if command -v sudo >/dev/null 2>&1; then
     if [[ ! -f "/usr/local/bin/k8s" ]]; then
-        echo "Creating global k8s symlink (requires sudo)..."
-        if sudo ln -sf "$SCRIPT_DIR/kubectl" "/usr/local/bin/k8s" 2>/dev/null; then
-            echo "✅ Global k8s command created at /usr/local/bin/k8s"
+        if [[ -f "$SCRIPT_DIR/kubectl" ]]; then
+            echo "Creating global k8s symlink (requires sudo)..."
+            if sudo ln -sf "$SCRIPT_DIR/kubectl" "/usr/local/bin/k8s" 2>/dev/null; then
+                echo "✅ Global k8s command created at /usr/local/bin/k8s"
+            else
+                echo "⚠️  Could not create global k8s command (use alias instead)"
+            fi
         else
-            echo "⚠️  Could not create global k8s command (use alias instead)"
+            echo "⚠️  kubectl wrapper not found at $SCRIPT_DIR/kubectl - run ./kubectl-manager.py --help first"
         fi
     else
         echo "✅ Global k8s command already exists"

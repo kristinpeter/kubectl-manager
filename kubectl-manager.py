@@ -56,7 +56,7 @@ class KubectlManager:
                     print(f"📦 Installing kubectl v{latest_version}...")
                     if self.download_kubectl(latest_version, force=True):
                         print(f"✅ kubectl v{latest_version} installed successfully")
-                        self.create_kubectl_wrapper(latest_version)
+                        self._create_default_kubectl_wrapper(latest_version)
                     else:
                         print("❌ Failed to install latest kubectl")
                 else:
@@ -1084,6 +1084,56 @@ echo "Now you can use './kubectl' directly without --kubeconfig option"
             secure_env['KUBECONFIG'] = os.environ['KUBECONFIG']
             
         return secure_env
+    
+    def _create_default_kubectl_wrapper(self, kubectl_version: str):
+        """Create a default kubectl wrapper for immediate use after installation"""
+        target_binary = self.bin_dir / f"kubectl-{kubectl_version}"
+        wrapper_path = self.base_dir / "kubectl"
+        
+        # Remove old wrapper if it exists
+        if wrapper_path.exists() or wrapper_path.is_symlink():
+            wrapper_path.unlink()
+        
+        # Create a basic wrapper that works without cluster configuration
+        wrapper_content = f"""#!/bin/bash
+# kubectl Manager Default Wrapper - Generated on {datetime.now().isoformat()}
+set -euo pipefail
+
+# kubectl binary path
+KUBECTL_BINARY="{target_binary}"
+
+# Check if kubectl binary exists and is executable
+if [[ ! -x "$KUBECTL_BINARY" ]]; then
+    echo "❌ kubectl binary not found or not executable: $KUBECTL_BINARY" >&2
+    echo "Run: ./kubectl-manager.py versions install {kubectl_version}" >&2
+    exit 1
+fi
+
+# Use system KUBECONFIG if available, otherwise show helpful message
+if [[ -z "${{KUBECONFIG:-}}" ]]; then
+    echo "💡 No cluster configured. To use kubectl-manager with a specific cluster:" >&2
+    echo "   ./kubectl-manager.py configs add <cluster-name> <kubeconfig-path>" >&2
+    echo "   ./kubectl-manager.py use <cluster-name>" >&2
+    echo "" >&2
+    echo "💡 Or set KUBECONFIG environment variable to use your existing kubeconfig:" >&2
+    echo "   export KUBECONFIG=~/.kube/config" >&2
+    echo "   ./kubectl get pods" >&2
+    echo "" >&2
+fi
+
+# Execute kubectl with all arguments
+exec "$KUBECTL_BINARY" "$@"
+"""
+        
+        # Write wrapper script
+        with open(wrapper_path, 'w') as f:
+            f.write(wrapper_content)
+        
+        # Make executable
+        wrapper_path.chmod(0o755)
+        
+        print(f"✅ Created default kubectl wrapper: ./kubectl")
+        print(f"💡 You can now use: ./kubectl <command>")
     
     def _create_kubectl_wrapper(self, cluster_name: str, kubectl_version: str, mode: str = 'local'):
         """Create kubectl wrapper with enhanced security and configurable modes"""

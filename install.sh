@@ -214,8 +214,28 @@ else
     exit 1
 fi
 
-# 5. Create initial directory structure (kubectl-manager.py will create these on first run, but we can check)
-print_info "Initial directory structure will be created on first use"
+# 5. Initialize kubectl-manager and trigger auto-download
+print_info "Initializing kubectl-manager and downloading latest kubectl..."
+if ./kubectl-manager.py --help > /dev/null 2>&1; then
+    # The initialization already happened during the --help call
+    # Check if kubectl wrapper was created
+    if [[ -f "./kubectl" ]]; then
+        print_success "kubectl wrapper created and ready to use"
+        print_info "You can now use: ./kubectl get nodes"
+    else
+        print_warning "kubectl wrapper not found, checking versions..."
+        # Try to trigger initialization by running versions list
+        ./kubectl-manager.py versions list > /dev/null 2>&1 || true
+        if [[ -f "./kubectl" ]]; then
+            print_success "kubectl wrapper created successfully"
+        else
+            print_warning "kubectl wrapper not created automatically"
+        fi
+    fi
+else
+    print_error "kubectl-manager.py initialization failed"
+    exit 1
+fi
 
 # 6. Setup bash completion (optional)
 if [[ -f "setup-completion.sh" ]] && [[ "$SKIP_COMPLETION" != "true" ]]; then
@@ -256,11 +276,16 @@ echo ""
 print_success "kubectl-manager is ready to use!"
 echo ""
 print_info "Quick start commands:"
-echo "  ./kubectl-manager.py                          # Interactive mode"
 echo "  ./kubectl-manager.py help                     # Comprehensive help"
+echo "  ./kubectl get nodes                           # Use kubectl immediately with KUBECONFIG"
 echo "  ./kubectl-manager.py configs add <name> <path> # Import your first cluster"
 echo ""
 print_info "Example usage:"
+echo "  # Option 1: Use existing KUBECONFIG"
+echo "  export KUBECONFIG=~/.kube/config"
+echo "  ./kubectl get pods"
+echo ""
+echo "  # Option 2: Import and manage clusters"
 echo "  ./kubectl-manager.py configs add prod ~/.kube/config"
 echo "  ./kubectl-manager.py use prod"
 echo "  ./kubectl get pods"
@@ -271,6 +296,12 @@ if grep -q "kubectl-manager-completion.bash" ~/.bashrc 2>/dev/null || grep -q "k
     print_info "Bash completion installed! Aliases available:"
     echo "  km                    # Short alias for kubectl-manager.py"
     echo "  kubectl-manager       # Full alias for kubectl-manager.py"
+    echo "  k8s                   # kubectl wrapper with autocompletion"
+    echo ""
+    if [[ -f "./kubectl" ]]; then
+        print_info "kubectl wrapper ready:"
+        echo "  ./kubectl             # kubectl with latest version"
+    fi
     echo ""
     print_info "To use completion in current session:"
     echo "  source ~/.bashrc"
