@@ -53,5 +53,14 @@ sample-*.yaml
 *.tmp
 *.temp
 
+# Development files (only in develop branch)
+test_basic.py
+pytest.ini
+run_tests.sh
+run_optimized_tests.sh
+CLAUDE.md
+CONTRIBUTING.md
+.github/
+
 # Claude AI files
 .claude/
