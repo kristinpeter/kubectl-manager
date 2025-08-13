@@ -101,3 +101,11 @@ A security-hardened tool for managing multiple kubectl versions and Kubernetes c
 - **Wrapper Modes**: Configurable wrapper creation (local/user/explicit) avoiding PATH conflicts
 - **Version Pruning**: Intelligent cleanup of old/vulnerable kubectl versions
 - **Comprehensive Diagnostics**: Security health checks and troubleshooting
+
+## Branching Strategy & Development Workflow
+- **Master branch**: Production-ready code only, protected with required PR reviews
+- **Develop branch**: Integration branch for all development work
+- **Feature branches**: `feature/description` format, branch from develop, merge back via PR
+- **Release process**: develop → release/vX.X.X → master → tag
+- **Testing requirements**: All tests must pass before any merge to master
+- **Workflow documentation**: See `.github/workflows/branch-protection.md` for complete guidelines
