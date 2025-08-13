@@ -61,6 +61,8 @@ run_optimized_tests.sh
 CLAUDE.md
 CONTRIBUTING.md
 .github/
+.coveragerc
+.markdownlint.json
 
 # Claude AI files
 .claude/
