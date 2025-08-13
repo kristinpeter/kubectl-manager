@@ -246,17 +246,14 @@ kubectl-manager implements comprehensive security measures to protect your syste
 - **Timeout protection** - Prevents hanging processes
 - **Environment sanitization** - Minimal environment variables passed
 
-### Security Testing & Validation ✅
-**17/17 tests passing** - Comprehensive test suite validates:
+### Security Validation ✅
+kubectl-manager has been thoroughly tested and validated for production use:
 - **Input sanitization** - Command injection prevention, malicious input blocking
 - **Path traversal protection** - Directory traversal attack prevention
 - **Environment security** - Secure subprocess execution with variable filtering
 - **SSL/TLS validation** - Certificate verification, TLS 1.2+ enforcement
 - **Cryptographic verification** - SHA256 checksum validation against official K8s releases
 - **Performance** - Sub-millisecond validation, instant diagnostics
-
-**Quick Test**: `./run_optimized_tests.sh basic` (requires Podman)
-**Full Suite**: `./run_optimized_tests.sh all`
 
 ## 🛠️ Requirements
 
@@ -274,15 +271,7 @@ kubectl-manager implements comprehensive security measures to protect your syste
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Development Setup
-```bash
-git clone https://github.com/kristinpeter/kubectl-manager.git
-cd kubectl-manager
-pip3 install requests
-./kubectl-manager.py --help
-```
+Contributions are welcome! Please see our GitHub repository for contribution guidelines.
 
 ## 📄 License
 

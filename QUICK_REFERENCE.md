@@ -82,14 +82,11 @@ km status               # Current configuration
 km clusters list        # All cluster status
 ```
 
-## 🧪 Testing & Validation
+## 🧪 System Diagnostics
 
 | Command | Description |
 |---------|-------------|
-| `./run_optimized_tests.sh basic` | Quick test (17 tests, requires Podman) |
-| `./run_optimized_tests.sh security` | Security validation |
-| `./run_optimized_tests.sh all` | Full test suite |
-| `diagnose` | System health check |
+| `diagnose` | Comprehensive security and system health check |
 
 ## 🆘 Help
 
